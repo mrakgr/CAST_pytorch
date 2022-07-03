@@ -182,12 +182,11 @@ def __trim(img, trim_width):
 
 def __scale_width(img, target_width, crop_width, method=Image.BICUBIC):
     ow, oh = img.size
-    if ow == target_width and oh >= crop_width:
+    if ow < target_width: 
         return img
     w = target_width
-    h = int(max(target_width * oh / ow, crop_width))
+    h = target_width * oh // ow
     return img.resize((w, h), method)
-
 
 def __crop(img, pos, size):
     ow, oh = img.size

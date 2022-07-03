@@ -30,9 +30,10 @@ import os
 from options.test_options import TestOptions
 from data import create_dataset
 from models import create_model
-from util.visualizer import save_images
+from util.visualizer import save_images, save_path
 from util import html
 import util.util as util
+import ntpath
 
 
 if __name__ == '__main__':
@@ -45,25 +46,15 @@ if __name__ == '__main__':
     opt.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
     dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
     model = create_model(opt)      # create a model given opt.model and other options
-    # create a webpage for viewing the results
-    web_dir = os.path.join(opt.results_dir, opt.name, '{}_{}'.format(opt.phase, opt.epoch))  # define the website directory
-    print('creating web directory', web_dir)
-    webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.epoch))
+    results_dir = os.path.join(opt.results_dir)
 
+    model.setup(opt)               # regular setup: load and print networks; create schedulers
     for i, data in enumerate(dataset):
-        if i == 0:
-            model.data_dependent_initialize(data)
-            model.setup(opt)               # regular setup: load and print networks; create schedulers
-            model.parallelize()
-            if opt.eval:
-                model.eval()
-        if i >= opt.num_test:  # only apply our model to opt.num_test images.
-            break
-        model.set_input(data)  # unpack data from data loader
-        model.test()           # run inference
-        visuals = model.get_current_visuals()  # get image results
-        img_path = model.get_image_paths()     # get image paths
-        if i % 5 == 0:  # save images to an HTML file
-            print('processing (%04d)-th image... %s' % (i, img_path))
-        save_images(webpage, visuals, img_path, width=opt.display_winsize)
-    webpage.save()  # save the HTML
+        path = save_path(data, results_dir)
+        if not os.path.exists(path):
+            image = model.forward(data, style_weight=1)
+            save_images(image, path)
+            os.system(f"pngquant --force --skip-if-larger --ext .png \"{path}\"") # Comment this out if you do not want the image to be compressed.
+        else:
+            print(f"Skipping: {path}")
+    print("Done.")

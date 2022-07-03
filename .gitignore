@@ -1,0 +1,6 @@
+checkpoints/*
+datasets/testA/*
+datasets/testB/*
+datasets/testB_*
+results/*
+*.pyc

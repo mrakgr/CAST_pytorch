@@ -6,7 +6,7 @@ import random
 import util.util as util
 
 
-class UnalignedDataset(BaseDataset):
+class CrossDataset(BaseDataset):
     """
     This dataset class can load unaligned/unpaired datasets.
 
@@ -48,12 +48,8 @@ class UnalignedDataset(BaseDataset):
             A_paths (str)    -- image paths
             B_paths (str)    -- image paths
         """
-        A_path = self.A_paths[index % self.A_size]  # make sure index is within then range
-        if self.opt.serial_batches:   # make sure index is within then range
-            index_B = index % self.B_size
-        else:   # randomize the index for domain B to avoid fixed pairs.
-            index_B = random.randint(0, self.B_size - 1)
-        B_path = self.B_paths[index_B]
+        A_path = self.A_paths[index // self.B_size]
+        B_path = self.B_paths[index % self.B_size ]
         A_img = Image.open(A_path).convert('RGB')
         B_img = Image.open(B_path).convert('RGB')
 
@@ -70,9 +66,5 @@ class UnalignedDataset(BaseDataset):
         return {'A': A, 'B': B, 'A_paths': A_path, 'B_paths': B_path}
 
     def __len__(self):
-        """Return the total number of images in the dataset.
-
-        As we have two datasets with potentially different number of images,
-        we take a maximum of
-        """
-        return max(self.A_size, self.B_size)
+        """Return the total number of images in the dataset."""
+        return self.A_size * self.B_size

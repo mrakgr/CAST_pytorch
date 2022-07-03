@@ -109,14 +109,21 @@ class ADAIN_Encoder(nn.Module):
             size)) / content_std.expand(size)
         return normalized_feat * style_std.expand(size) + style_mean.expand(size)
 
-    def forward(self, content, style, encoded_only = False):
-        style_feats = self.encode_with_intermediate(style)
-        content_feats = self.encode_with_intermediate(content)
-        if encoded_only:
-            return content_feats[-1], style_feats[-1]
-        else:
-            adain_feat = self.adain(content_feats[-1], style_feats[-1])
-            return  adain_feat
+    def encode(self,input):
+        r = input
+        for i in range(4):
+            func = getattr(self, 'enc_{:d}'.format(i + 1))
+            r = func(r)
+        return r
+
+    def forward(self, content, style, style_weight = 1):
+        content_feats = self.encode(content)
+        if style_weight == 0: return content_feats
+        else: 
+            style_feats = self.encode(style)
+            adain_feat = self.adain(content_feats, style_feats)
+            if style_weight == 1: return adain_feat
+            else: return (1 - style_weight) * content_feats + style_weight * adain_feat
 
 class Decoder(nn.Module):
     def __init__(self, gpu_ids=[]):
